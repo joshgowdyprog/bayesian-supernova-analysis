@@ -1,8 +1,9 @@
 # Jupyter NB Checkpoints
 .ipynb_checkpoints/
 
-# exclude data from source control by default
+# exclude data and outputs from source control by default
 /data/
+/outputs/
 
 # Mac OS-specific storage files
 .DS_Store
