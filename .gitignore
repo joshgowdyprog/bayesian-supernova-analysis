@@ -1,0 +1,30 @@
+# Jupyter NB Checkpoints
+.ipynb_checkpoints/
+
+# exclude data and outputs from source control by default
+/data/
+/outputs/
+
+# Mac OS-specific storage files
+.DS_Store
+
+
+# DotEnv configuration
+.env
+
+# pyenv local environment
+.python-version
+
+# vimf files
+*.swp
+*.swo
+
+# Database files
+*.db
+*.rdb
+
+# Pycharm
+.idea
+
+# VS Code
+.vscode/
