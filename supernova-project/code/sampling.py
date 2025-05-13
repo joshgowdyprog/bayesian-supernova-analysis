@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from typing import Callable
-from sympy import symbols, diff
 from functools import partial
 
 def supernova_metropolis_hastings(mu_data, z_data, cov_data, 
@@ -91,16 +90,30 @@ def metropolis_hastings(model_log_liklihood, n_steps:int, sampling_method:pd.Dat
     return chains, accepted/n_steps
 
 def simple_grad_log_posterior(sample_means, sample_cov_df):
+    """
+    Calculate the gradient of the log posterior probability of a bivariate normal approximation to the supernova model.
+
+    This function uses symbolic differentiation to compute the gradient of the log posterior
+    with respect to the parameters omega_m and h, and converts it into numerical functions.
+
+    Parameters:
+    sample_means (list): Sampled means of the model parameters.
+    sample_cov_df (pd.DataFrame): Sampled covariance matrix across model parameters.
+    Returns:
+    Callable[[np.ndarray], np.ndarray]: A function that computes the numerical gradient of the log posterior
+                                         with respect to omega_m and h.
+    """
 
     from model import empirical_log_posterior
+    from sympy import symbols, diff, lambdify
 
     omega_m, h = symbols("omega_m h")
     f = empirical_log_posterior(omega_m, h, sample_means, sample_cov_df)
 
-    grad_log_post = [diff(f, omega_m), diff(f, h)]
-    grad_log_post_func = [partial(lambda grad, x: grad.subs({omega_m: x[0], h: x[1]}), grad_log_post[0]),
-                          partial(lambda grad, x: grad.subs({omega_m: x[0], h: x[1]}), grad_log_post[1])]
-    return grad_log_post_func
+    grad_log_post = [-diff(f, omega_m), -diff(f, h)] # symbolic gradients
+    grad_log_post_func = lambdify((omega_m, h), grad_log_post, modules="numpy") # convert symbolic gradients to numerical functions
+
+    return lambda x : np.array(grad_log_post_func(x[0], x[1])) # return a function that takes a single array of parameters
 
 def hamiltonian_monte_carlo(model_log_posterior, grad_log_posterior, n_steps: int, param_df: pd.DataFrame, leapfrog_step_size: float, leapfrog_steps: int):
     """
@@ -131,19 +144,20 @@ def hamiltonian_monte_carlo(model_log_posterior, grad_log_posterior, n_steps: in
 
         # perform leapfrog integration
         params_new = np.copy(params)
-        momentum -= 0.5 * leapfrog_step_size * grad_log_posterior(params_new)  # Half-step for momentum
+        grad = grad_log_posterior(params_new)
+        momentum -= 0.5 * leapfrog_step_size * grad  # Half-step for momentum
         for _ in range(leapfrog_steps):
             params_new += leapfrog_step_size * momentum  # Full-step for position
             if _ != leapfrog_steps - 1:  # No momentum update on the last step
-                momentum -= leapfrog_step_size * grad_log_posterior(params_new)
-        momentum -= 0.5 * leapfrog_step_size * grad_log_posterior(params_new)  # Half-step for momentum
+                momentum -= leapfrog_step_size * grad
+        momentum -= 0.5 * leapfrog_step_size * grad  # Half-step for momentum
 
         # new Hamiltonian
         log_post_new = model_log_posterior(params_new)
         new_hamiltonian = -log_post_new + 0.5 * np.sum(momentum**2)
 
         # Metropolis acceptance criterion
-        if np.log(np.random.rand()) < hamiltonian - new_hamiltonian:
+        if np.log(np.random.rand()) <  hamiltonian - new_hamiltonian:
             params = params_new
             log_post = log_post_new
             accepted += 1
@@ -155,5 +169,3 @@ def hamiltonian_monte_carlo(model_log_posterior, grad_log_posterior, n_steps: in
     chains["log post"] = log_post_chain
 
     return chains, accepted / n_steps
-
-from sympy import symbols, diff

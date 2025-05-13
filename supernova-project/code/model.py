@@ -1,7 +1,7 @@
 import math
 import pandas as pd
 import numpy as np
-from sympy import symbols, diff
+from functools import partial
 
 # intermediary eta function
 def eta(a, omega_m):
@@ -107,5 +107,9 @@ def empirical_log_posterior(omega_m, h, sample_means, sample_cov_df):
     float
         Log posterior probability.
     """
-    diff = (np.array([omega_m, h])- sample_means.to_numpy())
-    return -0.5 * np.dot(np.dot(diff, np.linalg.inv(sample_cov_df.to_numpy())), diff)
+    params = np.array([omega_m, h])
+    diff = (params - sample_means.to_numpy())
+    # log posterior of the bivariate normal distribution
+    log_post=-0.5 * np.dot(np.dot(diff, np.linalg.inv(sample_cov_df.to_numpy())), diff)
+
+    return log_post
