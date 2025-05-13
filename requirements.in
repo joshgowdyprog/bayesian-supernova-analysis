@@ -1,0 +1,6 @@
+pip-tools==7.4.1
+numpy==2.2.5
+matplotlib==3.10.3
+pandas==2.2.3
+seaborn==0.13.2
+sympy==1.14.0
