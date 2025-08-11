@@ -25,3 +25,6 @@ venv/
 
 # VS Code
 .vscode/
+
+# bayesian notes
+bayesian-`notes/
